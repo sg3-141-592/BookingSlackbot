@@ -1,0 +1,46 @@
+{
+	"type": "modal",
+	"callback_id": "modify-environment",
+	"title": {
+		"type": "plain_text",
+		"text": "Modify Environment",
+		"emoji": true
+	},
+	"submit": {
+		"type": "plain_text",
+		"text": "Change",
+		"emoji": true
+	},
+	"close": {
+		"type": "plain_text",
+		"text": "Cancel",
+		"emoji": true
+	},
+	"blocks": [
+		{
+			"type": "actions",
+			"block_id": "env_id",
+			"elements": [
+				{
+					"type": "static_select",
+					"placeholder": {
+						"type": "plain_text",
+						"text": "Select an item",
+						"emoji": true
+					},
+					"options": [
+						{
+							"text": {
+								"type": "plain_text",
+								"text": "*this is plain_text text*",
+								"emoji": true
+							},
+							"value": "value-0"
+						}
+					],
+					"action_id": "modify-environment-select"
+				}
+			]
+		}
+	]
+}

@@ -1,0 +1,76 @@
+{
+	"type": "home",
+	"blocks": [
+		{
+			"type": "actions",
+			"elements": [
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": ":arrow_left: Back",
+						"emoji": true
+					},
+					"value": "click_add",
+					"action_id": "button-back"
+				}
+			]
+		},
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": ":card_file_box: Resource Types",
+				"emoji": true
+			}
+		},
+		{
+			"type": "context",
+			"elements": [
+				{
+					"type": "mrkdwn",
+					"text": "{% if data['resourceTypes']|length > 0 %}{% for resource in data['resourceTypes'] %}- *{{ resource[1] }}*\n{% endfor %}{% else %}Try adding some Resource Types :card_file_box:\nThese are your categories of what users can book, for example\n - meeting rooms\n - offices \n- parking spaces\n{% endif %}"
+				}
+			]
+		},
+		{
+			"type": "actions",
+			"elements": [
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "Add Resource Type  :heavy_plus_sign:",
+						"emoji": true
+					},
+					"value": "click_add",
+					"action_id": "button-add-resourcetype",
+					"style": "primary"
+				},
+				{% if data['resourceTypes']|length > 0%}
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "Modify Resource Type  :pencil:",
+						"emoji": true
+					},
+					"value": "click_add",
+					"action_id": "button-modify-resourcetype"
+				},
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "Delete Resource Type  :heavy_multiplication_x:",
+						"emoji": true
+					},
+					"value": "click_add",
+					"action_id": "button-delete-resourcetype",
+					"style": "danger"
+				}
+				{% endif %}
+			]
+		}
+	]
+}

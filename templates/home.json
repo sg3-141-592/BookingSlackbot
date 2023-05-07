@@ -1,0 +1,143 @@
+{
+	"type": "home",
+	"blocks": [
+		{
+			"type": "section",
+			"text": {
+				"type": "plain_text",
+				"text": "I'd like to book ...",
+				"emoji": true
+			}
+		},
+		{% if data['resourceTypesData']|length > 0 %}
+		{
+			"type": "actions",
+			"block_id": "resourcetype",
+			"elements": [
+				{
+					"type": "static_select",
+					"placeholder": {
+						"type": "plain_text",
+						"text": "Select options",
+						"emoji": true
+					},
+					"options": [
+						{% for resourceType in data['resourceTypesData'] %}
+						{
+							"text": {
+								"type": "plain_text",
+								"text": "{{ resourceType[1] }}",
+								"emoji": true
+							},
+							"value": "{{ resourceType[0] }}"
+						},
+						{% endfor %}
+					],
+					"action_id": "modify-resourcetype-select",
+					{% for resourceType in data['resourceTypesData'] %}
+						{% if resourceType[0] == data['resourceTypeId'] %}
+							"initial_option": {
+								"text": {
+									"type": "plain_text",
+									"text": "{{ resourceType[1] }}",
+									"emoji": true
+								},
+								"value": "{{ resourceType[0] }}"
+							}
+						{% endif %}
+					{% endfor %}
+				}
+			]
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "plain_text",
+				"text": "{% if data['resourceTypeDescription'] %}{{ data['resourceTypeDescription'] }}{% else %}  {% endif %}",
+				"emoji": true
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{% include 'home-bookings.json' %}
+		{% if data['environments']| length == 0 %}
+		{
+			"type": "section",
+			"text": {
+				"type": "plain_text",
+				"text": "Try creating some {{ data['resourceTypeName'] }} using \"{{ data['resourceTypeName'] }} :heavy_plus_sign:\" below\nThese are the specific items users can book for the current Resource Type :card_file_box:\nFor example\n - Meeting Room A.1\n - Company Lexus AB12 9AB\n - LoadTest-Environment-1\n",
+				"emoji": true
+			}
+		},
+		{% endif %}
+		{
+			"type": "actions",
+			"block_id": "buttons_block",
+			"elements": [
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "Add {{ data['resourceTypeName'] | truncate(20) }} :heavy_plus_sign:",
+						"emoji": true
+					},
+					"value": "{{ data['resourceTypeId'] }},{{ data['resourceTypeName'] }}",
+					"action_id": "button-add-environment",
+					"style": "primary"
+				},
+				{% if data['environments']|length > 0 %}
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "Modify {{ data['resourceTypeName'] | truncate(20) }} :pencil:",
+						"emoji": true
+					},
+					"value": "{{ data['resourceTypeId'] }},{{ data['resourceTypeName'] }}",
+					"action_id": "button-modify-environment"
+				},
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "Delete {{ data['resourceTypeName'] | truncate(20) }} ❌",
+						"emoji": true
+					},
+					"value": "{{ data['resourceTypeId'] }},{{ data['resourceTypeName'] }}",
+					"action_id": "button-delete-environment",
+					"style": "danger"
+				}
+				{% endif %}
+			]
+		},
+		{
+			"type": "divider"
+		},
+		{% else %}
+		{
+			"type": "section",
+			"text": {
+				"type": "plain_text",
+				"text": "Open \"Settings :gear:\" to start configuring your bookings!",
+				"emoji": true
+			}
+		},
+		{% endif %}
+		{
+			"type": "actions",
+			"elements": [
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "Settings :gear:",
+						"emoji": true
+					},
+					"value": "click_manage_settings",
+					"action_id": "button-manage-settings"
+				}
+			]
+		}
+	]
+}

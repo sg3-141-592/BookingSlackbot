@@ -1,0 +1,86 @@
+{
+	"type": "modal",
+	"callback_id": "add-resource-type",
+	"title": {
+		"type": "plain_text",
+		"text": "Add Resource Type",
+		"emoji": true
+	},
+	"submit": {
+		"type": "plain_text",
+		"text": "Create",
+		"emoji": true
+	},
+	"close": {
+		"type": "plain_text",
+		"text": "Cancel",
+		"emoji": true
+	},
+	"blocks": [
+		{
+			"type": "input",
+			"block_id": "resourcetype_name",
+			"element": {
+				"type": "plain_text_input",
+				"action_id": "plain_text_input-action",
+				"placeholder": {
+					"type": "plain_text",
+					"text": "e.g. Meeting Room, Parking Spaces"
+				}
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "Name",
+				"emoji": true
+			}
+		},
+		{
+			"type": "input",
+			"optional": true,
+			"block_id": "resourcetype_desc",
+			"element": {
+				"type": "plain_text_input",
+				"multiline": true,
+				"action_id": "plain_text_input-action",
+				"placeholder": {
+					"type": "plain_text",
+					"text": "Text shown to your users when booking\nFor example “Please collect keys for meeting rooms from the reception”"
+				}
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "Description",
+				"emoji": true
+			}
+		},
+		{
+			"type": "input",
+			"optional": true,
+			"block_id": "resourcetype_admins",
+			"element": {
+				"type": "multi_users_select",
+				"placeholder": {
+					"type": "plain_text",
+					"text": "Select users",
+					"emoji": true
+				},
+				"initial_users": ["{{ userId }}"],
+				"action_id": "multi_users_select-action"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "Set Administrators",
+				"emoji": true
+			}
+		},
+		{
+			"type": "context",
+			"elements": [
+				{
+					"type": "mrkdwn",
+					"text": "Administrators are users who can edit this Resource Type, it’s Environments and User Bookings"
+				}
+			]
+		}
+	]
+}

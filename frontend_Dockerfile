@@ -1,0 +1,9 @@
+FROM nginx:latest
+
+COPY nginx.conf /etc/nginx/nginx.conf
+
+COPY slackbooking_fullchain.pem /etc/nginx/slackbooking_fullchain.pem
+COPY slackbooking_privkey.pem /etc/nginx/slackbooking_privkey.pem
+
+EXPOSE 443
+EXPOSE 80

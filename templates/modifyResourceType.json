@@ -1,0 +1,107 @@
+{
+	"type": "modal",
+	"callback_id": "modify-resource-type",
+	"private_metadata": "{{ currentResourceType[0] }}",
+	"title": {
+		"type": "plain_text",
+		"text": "Modify Resource Type",
+		"emoji": true
+	},
+	"submit": {
+		"type": "plain_text",
+		"text": "Change",
+		"emoji": true
+	},
+	"close": {
+		"type": "plain_text",
+		"text": "Cancel",
+		"emoji": true
+	},
+	"blocks": [
+		{
+			"type": "actions",
+			"block_id": "resourcetype_id",
+			"elements": [
+				{
+					"type": "static_select",
+					"placeholder": {
+						"type": "plain_text",
+						"text": "Select an item",
+						"emoji": true
+					},
+					"options": [
+						{% for resourceType in resourceTypes %}
+						{
+							"text": {
+								"type": "plain_text",
+								"text": "{{ resourceType[1] }}",
+								"emoji": true
+							},
+							"value": "{{ resourceType[0] }}"
+						},
+						{% endfor %}
+					],
+					"action_id": "modify-modal-resourcetype-select",
+					"initial_option": {
+						"text": {
+							"type": "plain_text",
+							"text": "{{ currentResourceType[1] }}",
+							"emoji": true
+						},
+						"value": "{{ currentResourceType[0] }}"
+					}
+				}
+			]
+		},
+		{
+			"type": "input",
+			"block_id": "resourcetype_name_{{ blockIdSuffix }}",
+			"element": {
+				"type": "plain_text_input",
+				"action_id": "plain_text_input-action",
+				"initial_value": "{{ currentResourceType[1] }}"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "Name",
+				"emoji": true
+			}
+		},
+		{
+			"type": "input",
+			"optional": true,
+			"block_id": "resourcetype_desc_{{ blockIdSuffix }}",
+			"element": {
+				"type": "plain_text_input",
+				"multiline": true,
+				"action_id": "plain_text_input-action",
+				"initial_value": "{{ currentResourceType[2] }}"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "Description",
+				"emoji": true
+			}
+		},
+		{
+			"type": "input",
+			"optional": true,
+			"block_id": "resourcetype_admins_{{ blockIdSuffix }}",
+			"element": {
+				"type": "multi_users_select",
+				"placeholder": {
+					"type": "plain_text",
+					"text": "Select users",
+					"emoji": true
+				},
+				"initial_users": [{% for user in currentResourceType[3] %}"{{ user }}",{% endfor %}],
+				"action_id": "multi_users_select-action"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "Set Administrators",
+				"emoji": true
+			}
+		}
+	]
+}

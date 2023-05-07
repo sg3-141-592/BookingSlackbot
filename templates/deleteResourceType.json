@@ -1,0 +1,52 @@
+{
+	"type": "modal",
+	"callback_id": "delete-resource-type",
+	"private_metadata": "{{ currentResourceType[0] }}",
+	"title": {
+		"type": "plain_text",
+		"text": "Delete Resource Type",
+		"emoji": true
+	},
+	"submit": {
+		"type": "plain_text",
+		"text": "Delete",
+		"emoji": true
+	},
+	"close": {
+		"type": "plain_text",
+		"text": "Cancel",
+		"emoji": true
+	},
+	"blocks": [
+		{
+			"type": "input",
+			"block_id": "resourcetype_name",
+			"element": {
+				"type": "static_select",
+				"placeholder": {
+					"type": "plain_text",
+					"text": "Name",
+					"emoji": true
+				},
+				"options": [
+					{% for resourceType in resourceTypes %}
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "{{ resourceType[1] }}",
+							"emoji": true
+						},
+						"value": "{{ resourceType[0] }}"
+					},
+					{% endfor %}
+				],
+				"action_id": "static_select-action"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "To Delete",
+				"emoji": true
+			}
+		}
+	]
+}

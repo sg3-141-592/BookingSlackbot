@@ -1,0 +1,16 @@
+{% for environment in data['environments'] %}
+{
+    "type": "header",
+    "text": {"type": "plain_text", "text": "# {{ environment[1] }}"}
+},
+{
+    "type": "section",
+    "text": {"type": "mrkdwn", "text": "{{ environment[2] }}\n{% for bookingKey in environment[7] %}- {{ bookingKey }} {% if bookingKey in environment[6].keys() %}{% for booking in environment[6][bookingKey] %}<@{{ booking[2] }}> {% endfor %}{% else %}:sailboat:{% endif %}\n{% endfor %}"},
+    "accessory": {
+        "type": "button",
+        "text": {"type": "plain_text", "text": "Book {{ environment[1] | truncate(24) }}", "emoji": true},
+        "value": "{{ environment[0] }}",
+        "action_id": "button-book-clicked",
+    },
+},
+{% endfor %}

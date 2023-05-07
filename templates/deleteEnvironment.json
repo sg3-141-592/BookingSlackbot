@@ -1,0 +1,40 @@
+{
+	"type": "modal",
+	"callback_id": "delete-environment",
+	"title": {
+		"type": "plain_text",
+		"text": "Delete Environment",
+		"emoji": true
+	},
+	"submit": {
+		"type": "plain_text",
+		"text": "Delete",
+		"emoji": true
+	},
+	"close": {
+		"type": "plain_text",
+		"text": "Cancel",
+		"emoji": true
+	},
+	"blocks": [
+		{
+			"type": "input",
+            "block_id": "env_name",
+			"element": {
+				"type": "static_select",
+				"placeholder": {
+					"type": "plain_text",
+					"text": "Name",
+					"emoji": true
+				},
+				"options": [],
+				"action_id": "static_select-action"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "To Delete",
+				"emoji": true
+			}
+		}
+	]
+}

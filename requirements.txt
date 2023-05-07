@@ -1,0 +1,5 @@
+greenlet==2.0.2
+Jinja2==3.0.3
+slack-bolt==1.18.0
+slack-sdk==3.21.3
+SQLAlchemy==2.0.12

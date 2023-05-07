@@ -1,0 +1,31 @@
+{
+	"type": "modal",
+	"title": {
+		"type": "plain_text",
+		"text": "Share Lunch and Learn ..",
+		"emoji": true
+	},
+	"submit": {
+		"type": "plain_text",
+		"text": "Share",
+		"emoji": true
+	},
+	"close": {
+		"type": "plain_text",
+		"text": "Cancel",
+		"emoji": true
+	},
+	"blocks": [
+		{
+			"type": "input",
+			"element": {
+				"type": "channels_select"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "Share with Channel",
+				"emoji": true
+			}
+		}
+	]
+}

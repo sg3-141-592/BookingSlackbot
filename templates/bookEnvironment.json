@@ -1,0 +1,42 @@
+{
+	"type": "modal",
+	"callback_id": "add-booking",
+	"private_metadata": "{{ resourceTypeId }}",
+	"title": {
+		"type": "plain_text",
+		"text": "Book {{ environment[1]|truncate(19) }}",
+		"emoji": true
+	},
+	"submit": {
+		"type": "plain_text",
+		"text": "Done",
+		"emoji": true
+	},
+	"close": {
+		"type": "plain_text",
+		"text": "Cancel",
+		"emoji": true
+	},
+	"blocks": [{% for bookingKey in environment[8] %}
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "{{ bookingKey }}\n- {% for booking in environment[7][bookingKey] %} <@{{ booking[2] }}> {% endfor %}\n{{ environment[7][bookingKey] is numberBookingsRemaining(environment[6]) }} remaining"
+			},
+			"block_id": "{{ bookingKey }}",
+			{% if environment[7][bookingKey] is numberBookingsRemaining(environment[6]) > 0 or environment[7][bookingKey] is userHasbooking(userId) %}
+			"accessory": {
+				"type": "button",
+				"text": {
+					"type": "plain_text",
+					"text": "{% if environment[7][bookingKey] is userHasbooking(userId) %}Remove Booking{% else %}Add Booking{% endif %}",
+					"emoji": true
+				},
+				"value": "{{ environment[0] }}",
+				"action_id": "{% if environment[7][bookingKey] is userHasbooking(userId) %}remove-booking{% else %}create-booking{% endif %}"
+			}
+			{% endif %}
+		},{% endfor %}
+	]
+}

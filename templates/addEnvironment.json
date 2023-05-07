@@ -1,0 +1,135 @@
+{
+	"type": "modal",
+	"callback_id": "add-environment",
+	"title": {
+		"type": "plain_text",
+		"text": "{{ data['resourceTypeName']|truncate(20, True, '..') }}",
+		"emoji": true
+	},
+	"submit": {
+		"type": "plain_text",
+		"text": "Add",
+		"emoji": true
+	},
+	"close": {
+		"type": "plain_text",
+		"text": "Cancel",
+		"emoji": true
+	},
+	"private_metadata": "{{ data['resourceTypeId'] }}",
+	"blocks": [
+		{
+			"type": "input",
+			"block_id": "env_name",
+			"element": {
+				"type": "plain_text_input",
+				"action_id": "plain_text_input-action"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "Name",
+				"emoji": true
+			}
+		},
+		{
+			"type": "input",
+			"optional": true,
+			"block_id": "env_desc",
+			"element": {
+				"type": "plain_text_input",
+				"multiline": true,
+				"action_id": "plain_text_input-action"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "Description",
+				"emoji": true
+			}
+		},
+		{
+			"type": "section",
+			"block_id": "env_booking_type",
+			"text": {
+				"type": "mrkdwn",
+				"text": "*How Often Can Users Book?*"
+			},
+			"accessory": {
+				"type": "radio_buttons",
+				"options": [
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Daily",
+							"emoji": true
+						},
+						"value": "DAILY"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "One-Off",
+							"emoji": true
+						},
+						"value": "ONE-OFF"
+					}
+				],
+				"initial_option": {
+					"text": {
+						"type": "plain_text",
+						"text": "Daily",
+						"emoji": true
+					},
+					"value": "DAILY"
+				},
+				"action_id": "booking-type-changed"
+			}
+		},
+		{% if data['bookingType'] == 'DAILY' %}{
+			"type": "input",
+			"block_id": "env_num_days",
+			"element": {
+				"type": "number_input",
+				"is_decimal_allowed": false,
+				"action_id": "number_input-action"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "How Many Days in Advance Can Users Book?",
+				"emoji": true
+			}
+		},{% endif %}
+		{% if data['bookingType'] == 'ONE-OFF' %}{
+			"type": "input",
+			"block_id": "env_oneoff_date",
+			"element": {
+				"type": "datepicker",
+				"initial_date": "2023-05-12",
+				"placeholder": {
+					"type": "plain_text",
+					"text": "Select a date",
+					"emoji": true
+				},
+				"action_id": "datepicker-action"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "When Can Users Book Until?",
+				"emoji": true
+			}
+		},{% endif %}
+		{
+			"type": "input",
+			"block_id": "env_num_users",
+			"element": {
+				"type": "number_input",
+				"is_decimal_allowed": false,
+				"action_id": "number_input-action"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "How Many Users Can Book?",
+				"emoji": true
+			}
+		}
+	]
+}
