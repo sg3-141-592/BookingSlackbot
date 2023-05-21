@@ -92,7 +92,8 @@
 				"action_id": "booking-type-changed"
 			}
 		},
-		{% if data['bookingType'] == 'DAILY' %}{
+		{% if data['bookingType'] == 'DAILY' %}
+		{
 			"type": "input",
 			"block_id": "env_num_days",
 			"element": {
@@ -105,7 +106,8 @@
 				"text": "How Many Days in Advance Can Users Book?",
 				"emoji": true
 			}
-		},{% elif data['bookingType'] == 'ONE-OFF' %}{
+		},
+		{% elif data['bookingType'] == 'ONE-OFF' %}{
 			"type": "input",
 			"block_id": "env_oneoff_date",
 			"element": {
@@ -126,7 +128,22 @@
 		},
 		{% elif data['bookingType'] == 'CUSTOM' %}
 		{
+			"type": "input",
+			"block_id": "env_num_days",
+			"element": {
+				"type": "number_input",
+				"is_decimal_allowed": false,
+				"action_id": "number_input-action"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "How Many Days in Advance Can Users Book?",
+				"emoji": true
+			}
+		},
+		{
 			"type": "context",
+			"block_id": "env_custom_time_text",
 			"elements": [
 				{
 					"type": "plain_text",

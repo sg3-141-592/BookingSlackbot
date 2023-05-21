@@ -240,7 +240,7 @@ def handle_create_booking(ack, body, client):
     bookingKey = body["actions"][0]["block_id"]
     userId = body["user"]["id"]
     database.addBooking(
-        environmentId, datetime.strptime(bookingKey, "%Y-%m-%d").date(), userId
+        environmentId, bookingKey, userId
     )
     print(f"Added booking - {environmentId}, {bookingKey}, {userId}")
 
@@ -301,19 +301,7 @@ def handle_environment_custom_add_more(ack, body, client):
     
     # Timepicker handling
     actionId = body['actions'][0]['action_id']
-    bookingTimes = []
-    for envKey in body["view"]["state"]["values"].keys():
-        if "env_custom_time" in envKey:
-            newTime = body["view"]["state"]["values"][envKey]['environment-custom-timepicker-change']['selected_time']
-            if newTime in bookingTimes and actionId == "environment-custom-timepicker-change":
-                print("Duplicates found!")
-                # TODO: This doesn't work currently
-                errors = {
-                    envKey: "Duplicate times are not allowed"
-                }
-                ack(response_action="errors", errors=errors)
-                return
-            bookingTimes.append(newTime)
+    bookingTimes = getEnvironmentTimes(body["view"]["state"]["values"])
     if actionId == 'environment-custom-add-more':
         if len(bookingTimes) < 23:
             bookingTimes.append("00:00")
@@ -333,6 +321,14 @@ def handle_environment_custom_add_more(ack, body, client):
     )
     client.views_update(view_id=body["view"]["id"], view=result)
     ack()
+
+def getEnvironmentTimes(bodyState):
+    bookingTimes = []
+    for envKey in bodyState.keys():
+        if "env_custom_time" in envKey:
+            newTime = bodyState[envKey]['environment-custom-timepicker-change']['selected_time']
+            bookingTimes.append(newTime)
+    return bookingTimes
 
 
 @app.action("modify-environment-select")
@@ -508,6 +504,20 @@ def handle_add_environment(ack, body, client, view, logger):
         "selected_option"
     ]["value"]
     numberUsers = int(stateData["env_num_users"]["number_input-action"]["value"])
+    
+    # Timepicker handling
+    bookingTimes = getEnvironmentTimes(stateData)
+    # Raise an error if any bookingTimes have duplicates
+    if len(bookingTimes) != len(set(bookingTimes)):
+        # TODO: Work out a way to display these errors on the home screen
+        # Got a problem with inputs currently
+        print("Duplicates found")
+        errors = {
+            "env_custom_time_1":  "Duplciate times are not allowed"
+        }
+        ack(response_action="errors", errors=errors)
+        return
+
     booking_settings = {}
     if bookingType == "DAILY":
         booking_settings = {
@@ -519,9 +529,15 @@ def handle_add_environment(ack, body, client, view, logger):
         booking_settings = {
             "date": stateData["env_oneoff_date"]["datepicker-action"]["selected_date"]
         }
+    elif bookingType == "CUSTOM":
+        booking_settings = {
+            "bookingTimes": bookingTimes,
+            "numberDaysAdvance": int(
+                stateData["env_num_days"]["number_input-action"]["value"]
+            )
+        }
     
     try:
-        # Hard-coding resource type temporarily
         database.addEnvironment(
             newEnvironment,
             resourceTypeId,

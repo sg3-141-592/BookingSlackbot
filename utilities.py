@@ -21,6 +21,12 @@ def getValidBookings(bookingType, bookingSettings):
         return list(map(lambda x: x.strftime('%Y-%m-%d'), getNextNDays(bookingSettings["numberDaysAdvance"])))
     elif bookingType == "ONE-OFF":
         return [bookingSettings["date"]]
+    elif bookingType == "CUSTOM":
+        results = []
+        for day in getNextNDays(bookingSettings["numberDaysAdvance"]):
+            for bookingTime in bookingSettings['bookingTimes']:
+                results.append(f"{day} {bookingTime}")
+        return results
 
 def databaseResultToDict(input_rows, id):
     # Turn the n-th item to the dictionary key
