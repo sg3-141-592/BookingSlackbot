@@ -4,6 +4,7 @@ import logging
 import jinja2
 import json
 import os
+import re
 import traceback
 import uuid
 
@@ -90,7 +91,9 @@ def refresh_home_template(organisationId, userId, client, resourceTypeId: int = 
                     "resourceTypeId": resourceTypeId,
                     "resourceTypeName": resourceTypeData[1],
                     "resourceTypeDescription": resourceTypeData[2],
-                }
+                    "userId": userId
+                },
+                isAdmin = userId in resourceTypeData[3]
             )
             client.views_publish(user_id=userId, view=result)
         
@@ -111,7 +114,8 @@ def refresh_home_template(organisationId, userId, client, resourceTypeId: int = 
                     "environments": environments,
                     "bookings": utilities.getNextNDays(2),
                     "validDates": None,
-                }
+                },
+                isAdmin = userId in resourceTypeData[3]
             )
 
             client.views_publish(user_id=userId, view=result)
@@ -289,21 +293,43 @@ def handle_resourcetype_select(ack, body, client):
     ack()
 
 
-# modify-environment-booking-type-select
-@app.action("booking-type-changed")
-def handle_environment_booking_type_select(ack, body, client):
-    print(f"Booking type changed")
-    bookingType = body["view"]["state"]["values"]["env_booking_type"][
-        "booking-type-changed"
-    ]["selected_option"]["value"]
+@app.action(re.compile("environment-custom-add-more|environment-custom-remove-last|environment-custom-timepicker-change|booking-type-changed"))
+def handle_environment_custom_add_more(ack, body, client):
+    bookingType = body["view"]["state"]["values"]["env_booking_type"]["booking-type-changed"]["selected_option"]["value"]
     resourceTypeId = int(body["view"]["private_metadata"])
     resourceTypeName = body["view"]["title"]["text"]
+    
+    # Timepicker handling
+    actionId = body['actions'][0]['action_id']
+    bookingTimes = []
+    for envKey in body["view"]["state"]["values"].keys():
+        if "env_custom_time" in envKey:
+            newTime = body["view"]["state"]["values"][envKey]['environment-custom-timepicker-change']['selected_time']
+            if newTime in bookingTimes and actionId == "environment-custom-timepicker-change":
+                print("Duplicates found!")
+                # TODO: This doesn't work currently
+                errors = {
+                    envKey: "Duplicate times are not allowed"
+                }
+                ack(response_action="errors", errors=errors)
+                return
+            bookingTimes.append(newTime)
+    if actionId == 'environment-custom-add-more':
+        if len(bookingTimes) < 23:
+            bookingTimes.append("00:00")
+    elif actionId == 'environment-custom-remove-last':
+        try:
+            bookingTimes.pop()
+        except IndexError:
+            pass
+
     result = add_env_template.render(
         data={
             "resourceTypeId": resourceTypeId,
             "resourceTypeName": resourceTypeName,
             "bookingType": bookingType,
-        }
+        },
+        bookingTimes=bookingTimes
     )
     client.views_update(view_id=body["view"]["id"], view=result)
     ack()
@@ -582,6 +608,7 @@ def handle_modify_environment(ack, body, client, view, logger):
 
 @app.view("add-resource-type")
 def handle_add_resource_type(ack, body, client, view, logger):
+    userId = body["user"]["id"]
     organisationId = body["team"]["id"]
     resourceTypeName = body["view"]["state"]["values"]["resourcetype_name"][
         "plain_text_input-action"
@@ -590,18 +617,23 @@ def handle_add_resource_type(ack, body, client, view, logger):
         "plain_text_input-action"
     ]["value"]
     resourceTypeAdministrators = body["view"]["state"]["values"]["resourcetype_admins"]["multi_users_select-action"]["selected_users"]
-
+    if len(resourceTypeAdministrators) == 0:
+        print("Adding current user as default administrator")
+        resourceTypeAdministrators.append(userId)
+    
     database.addResourceType(resourceTypeName, organisationId, resourceTypeDesc, resourceTypeAdministrators)
+    print(f"Added resourceType {resourceTypeName}")
 
     resourceTypes = list(database.getResourceTypes(organisationId))
     result = manage_settings_template.render(data={"resourceTypes": resourceTypes})
 
-    userId = body["user"]["id"]
     client.views_publish(user_id=userId, view=result)
     ack(response_action="clear")
 
 @app.view("modify-resource-type")
 def handle_modify_resource_type(ack, body, client, view, logger):
+    userId = body["user"]["id"]
+
     organisationId = body["team"]["id"]
     stateData = body["view"]["state"]["values"]
     # Extract the random block id
@@ -610,12 +642,14 @@ def handle_modify_resource_type(ack, body, client, view, logger):
     resourceTypeName = stateData[f"resourcetype_name_{block_id}"]["plain_text_input-action"]["value"]
     resourceTypeDesc = stateData[f"resourcetype_desc_{block_id}"]["plain_text_input-action"]["value"]
     resourceTypeAdministrators = stateData[f"resourcetype_admins_{block_id}"]["multi_users_select-action"]["selected_users"]
+    if len(resourceTypeAdministrators) == 0:
+        print("Adding current user as default administrator")
+        resourceTypeAdministrators.append(userId)
     database.modifyResourceType(resourceTypeId, resourceTypeName, resourceTypeDesc, resourceTypeAdministrators)
     print(f"Modified resourceType {resourceTypeId}")
 
     resourceTypes = list(database.getResourceTypes(organisationId))
     result = manage_settings_template.render(data={"resourceTypes": resourceTypes})
-    userId = body["user"]["id"]
     client.views_publish(user_id=userId, view=result)
 
     ack(response_action="clear")

@@ -71,6 +71,7 @@
 			}
 		},
 		{% endif %}
+		{% if isAdmin %}
 		{
 			"type": "actions",
 			"block_id": "buttons_block",
@@ -111,6 +112,7 @@
 				{% endif %}
 			]
 		},
+		{% endif %}
 		{
 			"type": "divider"
 		},

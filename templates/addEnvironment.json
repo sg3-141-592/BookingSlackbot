@@ -71,6 +71,14 @@
 							"emoji": true
 						},
 						"value": "ONE-OFF"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Custom",
+							"emoji": true
+						},
+						"value": "CUSTOM"
 					}
 				],
 				"initial_option": {
@@ -97,8 +105,7 @@
 				"text": "How Many Days in Advance Can Users Book?",
 				"emoji": true
 			}
-		},{% endif %}
-		{% if data['bookingType'] == 'ONE-OFF' %}{
+		},{% elif data['bookingType'] == 'ONE-OFF' %}{
 			"type": "input",
 			"block_id": "env_oneoff_date",
 			"element": {
@@ -116,7 +123,64 @@
 				"text": "When Can Users Book Until?",
 				"emoji": true
 			}
-		},{% endif %}
+		},
+		{% elif data['bookingType'] == 'CUSTOM' %}
+		{
+			"type": "context",
+			"elements": [
+				{
+					"type": "plain_text",
+					"text": "Enter a list of times users can book",
+					"emoji": true
+				}
+			]
+		},
+		{% for bookingTime in bookingTimes %}
+		{
+			"type": "section",
+			"block_id": "env_custom_time_{{ loop.index }}",
+			"text": {
+				"type": "mrkdwn",
+				"text": "#{{ loop.index }}"
+			},
+			"accessory": {
+				"type": "timepicker",
+				"initial_time": "{{ bookingTime }}",
+				"placeholder": {
+					"type": "plain_text",
+					"text": "Select time",
+					"emoji": true
+				},
+				"action_id": "environment-custom-timepicker-change"
+			}
+		},
+		{% endfor %}
+		{
+			"type": "actions",
+			"elements": [
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "Add More",
+						"emoji": true
+					},
+					"value": "click_me_123",
+					"action_id": "environment-custom-add-more"
+				},
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "Remove Last",
+						"emoji": true
+					},
+					"value": "click_me_123",
+					"action_id": "environment-custom-remove-last"
+				}
+			]
+		},
+		{% endif %}
 		{
 			"type": "input",
 			"block_id": "env_num_users",
