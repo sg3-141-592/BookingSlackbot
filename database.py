@@ -124,7 +124,7 @@ def getEnvironment(environmentId: int):
                 Environment.id,
                 Environment.name,
                 Environment.description,
-                ResourceType.name,
+                ResourceType.id,
                 Environment.booking_type,
                 Environment.booking_settings,
                 Environment.maximum_users,

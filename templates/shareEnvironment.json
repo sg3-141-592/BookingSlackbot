@@ -1,8 +1,9 @@
 {
 	"type": "modal",
+	"callback_id": "share-environment",
 	"title": {
 		"type": "plain_text",
-		"text": "Share Lunch and Learn ..",
+		"text": "Share {{ resourceTypeName | truncate(18, True, '..') }}",
 		"emoji": true
 	},
 	"submit": {
@@ -18,8 +19,45 @@
 	"blocks": [
 		{
 			"type": "input",
+			"block_id": "selected_env",
 			"element": {
-				"type": "channels_select"
+				"type": "static_select",
+				"placeholder": {
+					"type": "plain_text",
+					"text": "Which Environment to Share?",
+					"emoji": true
+				},
+				"options": [
+					{% for environment in environments %}
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "{{ environment[1] }}",
+							"emoji": true
+						},
+						"value": "{{ environment[0] }}"
+					},
+					{% endfor %}
+				],
+				"action_id": "modify-environment-share"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "{{ resourceTypeName }}",
+				"emoji": true
+			}
+		},
+		{
+			"type": "input",
+			"block_id": "selected_channel",
+			"element": {
+				"type": "channels_select",
+                "placeholder": {
+                    "type": "plain_text",
+                    "text": "Select channel to share to",
+                    "emoji": true
+                },
+				"action_id": "modify-channel-share"
 			},
 			"label": {
 				"type": "plain_text",

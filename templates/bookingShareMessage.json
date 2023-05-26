@@ -1,0 +1,28 @@
+[
+	{
+		"type": "header",
+		"text": {
+			"type": "plain_text",
+			"text": "# {{ environment[1] }}",
+			"emoji": true
+		}
+	},
+	{
+		"type": "section",
+		"block_id": "env_id",
+		"text": {
+			"type": "mrkdwn",
+			"text": "{{ environment[2] | replace('\n','\\n') }}"
+		},
+		"accessory": {
+			"type": "button",
+			"text": {
+				"type": "plain_text",
+				"text": "Book",
+				"emoji": true
+			},
+			"value": "{{ environment[0] }}",
+			"action_id": "message-button-book-clicked"
+		}
+	}
+]

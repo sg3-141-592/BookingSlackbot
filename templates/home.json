@@ -108,8 +108,18 @@
 					"value": "{{ data['resourceTypeId'] }},{{ data['resourceTypeName'] }}",
 					"action_id": "button-delete-environment",
 					"style": "danger"
-				}
+				},
 				{% endif %}
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "Share {{ data['resourceTypeName'] | truncate(20) }} :arrow_upper_right:",
+						"emoji": true
+					},
+					"value": "{{ data['resourceTypeId'] }},{{ data['resourceTypeName'] }}",
+					"action_id": "button-share-environment"
+				}
 			]
 		},
 		{% endif %}

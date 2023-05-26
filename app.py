@@ -1,5 +1,5 @@
+import contextlib
 import copy
-from datetime import datetime
 import logging
 import jinja2
 import json
@@ -35,9 +35,7 @@ app = App(
 )
 
 # Preload templates
-homepage_template = None  # json.load(open("templates/home.json", "r"))
 delete_enviroment_template = json.load(open("templates/deleteEnvironment.json", "r"))
-book_enviroment_template = None #json.load(open("templates/bookEnvironment.json", "r"))
 modify_enviroment_template = json.load(open("templates/modifyEnvironment.json", "r"))
 error_template = json.load(open("templates/errorPage.json", "r"))
 
@@ -49,6 +47,8 @@ jinja_env.tests['numberBookingsRemaining'] = utilities.numberBookingsRemaining
 
 home_template = jinja_env.get_template("home.json")
 add_env_template = jinja_env.get_template("addEnvironment.json")
+share_env_template = jinja_env.get_template("shareEnvironment.json")
+booking_share_env_template = jinja_env.get_template("bookingShareMessage.json")
 manage_settings_template = jinja_env.get_template("manageSettings.json")
 book_env_template = jinja_env.get_template("bookEnvironment.json")
 add_resource_type_template = jinja_env.get_template("addResourceType.json")
@@ -120,79 +120,6 @@ def refresh_home_template(organisationId, userId, client, resourceTypeId: int = 
 
             client.views_publish(user_id=userId, view=result)
 
-
-def refresh_home(organisationId, userId, client, resourceTypeId: int = None):
-    generated_template = copy.deepcopy(homepage_template)
-
-    resourceTypesData = database.getResourceTypes(organisationId)
-    # If resourceTypes haven't been defined yet only show the settings button
-    if len(list(resourceTypesData)) == 0:
-        generated_template["blocks"] = generated_template["blocks"][5:]
-    else:
-        resourceTypesView = views.generate_environment_options(resourceTypesData)
-        generated_template["blocks"][0]["elements"][0]["options"] = resourceTypesView
-        if resourceTypeId is None:
-            generated_template["blocks"][0]["elements"][0][
-                "initial_option"
-            ] = resourceTypesView[0]
-            resourceTypeId = int(list(resourceTypesData)[0][0])
-
-        resourceTypeId = int(resourceTypeId)
-
-        resourceTypeData = next(
-            (
-                resourceType
-                for resourceType in list(resourceTypesData)
-                if resourceType[0] == resourceTypeId
-            ),
-            None,
-        )
-
-        resourceTypeName = resourceTypeData[1]
-        resourceTypeDescription = resourceTypeData[2]
-
-        # Customise buttons with resource type name
-        generated_template["blocks"][3]["elements"][0]["text"][
-            "text"
-        ] = f"Add {resourceTypeName} :heavy_plus_sign:"
-        generated_template["blocks"][3]["elements"][1]["text"][
-            "text"
-        ] = f"Modify {resourceTypeName} :pencil:"
-        generated_template["blocks"][3]["elements"][2]["text"][
-            "text"
-        ] = f"Delete {resourceTypeName} ❌"
-
-        # Set the buttons values to the resource type ids
-        for i in range(3):
-            generated_template["blocks"][3]["elements"][i]["value"] = ",".join(
-                [str(resourceTypeId), resourceTypeName]
-            )
-
-        environments = database.getEnvironments(organisationId, resourceTypeId)
-        # Don't show modify or delete buttons if no environments are defined
-        if len(environments) == 0:
-            del generated_template["blocks"][3]["elements"][2]
-            del generated_template["blocks"][3]["elements"][1]
-        generated_template["blocks"] = (
-            generated_template["blocks"][:2]
-            + views.generate_environment_list(
-                environments,
-                database.getBookings(
-                    organisationId=organisationId, resourceTypeId=resourceTypeId
-                ),
-            )
-            + generated_template["blocks"][2:]
-        )
-
-        if resourceTypeDescription:
-            generated_template["blocks"].insert(
-                1, views.generateResourceTypeDescription(resourceTypeDescription)
-            )
-
-    client.views_publish(user_id=userId, view=generated_template)
-    return generated_template
-
-
 @app.event("app_home_opened")
 def update_home_tab(client, event, logger):
     try:
@@ -208,14 +135,26 @@ def update_home_tab(client, event, logger):
         client.views_publish(user_id=userId, view=error_template)
 
 
-@app.action("button-book-clicked")
+@app.action(re.compile("button-book-clicked|message-button-book-clicked"))
 def handle_book_clicked(ack, body, client):
     organisationId = body["team"]["id"]
     userId = body["user"]["id"]
-    resourceTypeId = body["view"]["state"]["values"]\
-        ["resourcetype"]["modify-resourcetype-select"]["selected_option"]["value"]
-    environmentId = body["actions"][0]["value"]
+    actionId = body['actions'][0]['action_id']
+
+    environmentId = None
+
+    if actionId == 'message-button-book-clicked':
+        # Find the environmentId
+        environmentId = int(next(filter(lambda x: x['block_id'] == 'env_id', body["message"]["blocks"]), None)["accessory"]["value"])
+    elif actionId == 'button-book-clicked':
+        environmentId = body["actions"][0]["value"]
+
     environment = database.getEnvironment(environmentId)
+    resourceTypeId = environment[3]
+    
+    pprint(environment)
+    pprint(environment[3])
+
     bookings = database.getBookings(organisationId, environmentId, resourceTypeId)
     bookings = utilities.databaseResultToDict(bookings, 1)
     validBookingKeys = utilities.getValidBookings(environment[4], environment[5])
@@ -234,9 +173,9 @@ def handle_book_clicked(ack, body, client):
 @app.action("create-booking")
 def handle_create_booking(ack, body, client):
     organisationId = body["team"]["id"]
-    resourceTypeId = int(body["view"]["private_metadata"])
     environmentId = body["actions"][0]["value"]
     environment = database.getEnvironment(environmentId)
+    resourceTypeId = environment[3]
     bookingKey = body["actions"][0]["block_id"]
     userId = body["user"]["id"]
     database.addBooking(
@@ -277,6 +216,21 @@ def action_modify_environment(ack, body, client):
     client.views_open(trigger_id=body["trigger_id"], view=generated_template)
     ack()
 
+@app.action("button-share-environment")
+def action_handle_share_environment(ack, body, client):
+    organisationId = body["team"]["id"]
+    resourceTypeId, resourceTypeName = body["actions"][0]["value"].split(",")
+    environments = database.getEnvironments(organisationId, resourceTypeId)
+
+    result = share_env_template.render(
+        environments = environments,
+        resourceTypeName = resourceTypeName
+    )
+
+    client.views_open(trigger_id=body["trigger_id"], view=result)
+    ack()
+
+
 
 # This is the one from the home page
 @app.action("modify-resourcetype-select")
@@ -306,10 +260,8 @@ def handle_environment_custom_add_more(ack, body, client):
         if len(bookingTimes) < 23:
             bookingTimes.append("00:00")
     elif actionId == 'environment-custom-remove-last':
-        try:
+        with contextlib.suppress(IndexError):
             bookingTimes.pop()
-        except IndexError:
-            pass
 
     result = add_env_template.render(
         data={
@@ -362,10 +314,10 @@ def handle_modify_environment_select(ack, body, client):
 @app.action("remove-booking")
 def handle_remove_booking(ack, body, client):
     organisationId = body["team"]["id"]
-    resourceTypeId = int(body["view"]["private_metadata"])
-    bookingKey = body["actions"][0]["block_id"]
     environmentId = body["actions"][0]["value"]
     environment = database.getEnvironment(environmentId)
+    resourceTypeId = environment[3]
+    bookingKey = body["actions"][0]["block_id"]
     userId = body["user"]["id"]
     database.removeBooking(
         environmentId, bookingKey, userId
@@ -548,8 +500,9 @@ def handle_add_environment(ack, body, client, view, logger):
         )
     except Exception as e:
         pprint(e)
-        errors = {}
-        errors["env_name"] = f"Environment {newEnvironment} already exists"
+        errors = {
+            "env_name": f"Environment {newEnvironment} already exists"
+        }
         ack(response_action="errors", errors=errors)
 
     # Re-generate the home page
@@ -682,6 +635,25 @@ def handle_delete_resource_type(ack, body, client, view, logger):
     result = manage_settings_template.render(data={"resourceTypes": resourceTypes})
     userId = body["user"]["id"]
     client.views_publish(user_id=userId, view=result)
+    ack(response_action="clear")
+
+@app.view("share-environment")
+def handle_share_environment(ack, body, client, view, logger):
+    stateData = body["view"]["state"]["values"]
+    selectedChannel = stateData["selected_channel"]["modify-channel-share"]["selected_channel"]
+    selectedEnv = int(stateData["selected_env"]["modify-environment-share"]["selected_option"]["value"])
+
+    result = booking_share_env_template.render(
+        environment = database.getEnvironment(selectedEnv)
+    )
+
+    print(f"Sharing {selectedEnv} to #{selectedChannel}")
+    
+    try:
+        client.chat_postMessage(channel=selectedChannel, blocks=json.loads(result))
+    except Exception as e:
+        logger.exception(f"Failed to post a message {e}")
+    
     ack(response_action="clear")
 
 # Start your app
