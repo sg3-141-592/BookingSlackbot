@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 # Jinja2 methods
 def userHasBooking(bookings, userId):
@@ -20,7 +20,12 @@ def getValidBookings(bookingType, bookingSettings):
     if bookingType == "DAILY":
         return list(map(lambda x: x.strftime('%Y-%m-%d'), getNextNDays(bookingSettings["numberDaysAdvance"])))
     elif bookingType == "ONE-OFF":
-        return [bookingSettings["date"]]
+        bookingDate = datetime.strptime(bookingSettings["date"], '%Y-%m-%d').date()
+        # Get current date
+        if bookingDate >= date.today():
+            return [bookingSettings["date"]]
+        else:
+            return None
     elif bookingType == "CUSTOM":
         results = []
         for day in getNextNDays(bookingSettings["numberDaysAdvance"]):

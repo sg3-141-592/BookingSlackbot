@@ -71,6 +71,24 @@
 			}
 		},
 		{% endif %}
+		{% if data['environments']| length > 0 %}
+		{
+			"type": "actions",
+			"block_id": "share_block",
+			"elements": [
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "Share {{ data['resourceTypeName'] | truncate(20, killwords=True) }} :arrow_upper_right:",
+						"emoji": true
+					},
+					"value": "{{ data['resourceTypeId'] }},{{ data['resourceTypeName'] }}",
+					"action_id": "button-share-environment"
+				}
+			]
+		},
+		{% endif %}
 		{% if isAdmin %}
 		{
 			"type": "actions",
@@ -80,7 +98,7 @@
 					"type": "button",
 					"text": {
 						"type": "plain_text",
-						"text": "Add {{ data['resourceTypeName'] | truncate(20) }} :heavy_plus_sign:",
+						"text": "Add {{ data['resourceTypeName'] | truncate(20, killwords=True) }} :heavy_plus_sign:",
 						"emoji": true
 					},
 					"value": "{{ data['resourceTypeId'] }},{{ data['resourceTypeName'] }}",
@@ -92,7 +110,7 @@
 					"type": "button",
 					"text": {
 						"type": "plain_text",
-						"text": "Modify {{ data['resourceTypeName'] | truncate(20) }} :pencil:",
+						"text": "Modify {{ data['resourceTypeName'] | truncate(20, killwords=True) }} :pencil:",
 						"emoji": true
 					},
 					"value": "{{ data['resourceTypeId'] }},{{ data['resourceTypeName'] }}",
@@ -102,7 +120,7 @@
 					"type": "button",
 					"text": {
 						"type": "plain_text",
-						"text": "Delete {{ data['resourceTypeName'] | truncate(20) }} ❌",
+						"text": "Delete {{ data['resourceTypeName'] | truncate(20, killwords=True) }} ❌",
 						"emoji": true
 					},
 					"value": "{{ data['resourceTypeId'] }},{{ data['resourceTypeName'] }}",
@@ -110,16 +128,6 @@
 					"style": "danger"
 				},
 				{% endif %}
-				{
-					"type": "button",
-					"text": {
-						"type": "plain_text",
-						"text": "Share {{ data['resourceTypeName'] | truncate(20) }} :arrow_upper_right:",
-						"emoji": true
-					},
-					"value": "{{ data['resourceTypeId'] }},{{ data['resourceTypeName'] }}",
-					"action_id": "button-share-environment"
-				}
 			]
 		},
 		{% endif %}

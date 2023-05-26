@@ -5,6 +5,7 @@ import jinja2
 import json
 import os
 import re
+from sqlalchemy import exc
 import traceback
 import uuid
 
@@ -139,7 +140,6 @@ def update_home_tab(client, event, logger):
 def handle_book_clicked(ack, body, client):
     organisationId = body["team"]["id"]
     userId = body["user"]["id"]
-    actionId = body['actions'][0]['action_id']
 
     environmentId = None
 
@@ -575,52 +575,47 @@ def handle_modify_environment(ack, body, client, view, logger):
     ack(response_action="clear")
 
 
-@app.view("add-resource-type")
+@app.view(re.compile("add-resource-type|modify-resource-type"))
 def handle_add_resource_type(ack, body, client, view, logger):
     userId = body["user"]["id"]
     organisationId = body["team"]["id"]
-    resourceTypeName = body["view"]["state"]["values"]["resourcetype_name"][
-        "plain_text_input-action"
-    ]["value"]
-    resourceTypeDesc = body["view"]["state"]["values"]["resourcetype_desc"][
-        "plain_text_input-action"
-    ]["value"]
-    resourceTypeAdministrators = body["view"]["state"]["values"]["resourcetype_admins"]["multi_users_select-action"]["selected_users"]
+    actionId = body['view']['callback_id']
+
+    stateData = body["view"]["state"]["values"]
+
+    block_id = ""
+    if actionId == "modify-resource-type":
+         # Extract the random block id
+        block_id = utilities.extractBlockIdString(stateData, "resourcetype_name")
+        resourceTypeId = int(body["view"]["private_metadata"])
+    resourceTypeName = stateData[f"resourcetype_name{block_id}"]["plain_text_input-action"]["value"]
+    resourceTypeDesc = stateData[f"resourcetype_desc{block_id}"]["plain_text_input-action"]["value"]
+    resourceTypeAdministrators = stateData[f"resourcetype_admins{block_id}"]["multi_users_select-action"]["selected_users"]
+    
     if len(resourceTypeAdministrators) == 0:
         print("Adding current user as default administrator")
         resourceTypeAdministrators.append(userId)
     
-    database.addResourceType(resourceTypeName, organisationId, resourceTypeDesc, resourceTypeAdministrators)
-    print(f"Added resourceType {resourceTypeName}")
+    # Handle errors, most likely duplicate resource name
+    try:
+        if actionId == "add-resource-type":
+            database.addResourceType(resourceTypeName, organisationId, resourceTypeDesc, resourceTypeAdministrators)
+            print(f"Added resourceType {resourceTypeName}")
+        else:
+            database.modifyResourceType(resourceTypeId, resourceTypeName, resourceTypeDesc, resourceTypeAdministrators)
+            print(f"Modified resourceType {resourceTypeId}")
+    except exc.IntegrityError as e:
+        print(f"Attempted to create duplicate resource type")
+        errors = {
+            f"resourcetype_name{block_id}": f"There's already a resource named {resourceTypeName}"
+        }
+        ack(response_action="errors", errors=errors)
+        return
 
     resourceTypes = list(database.getResourceTypes(organisationId))
     result = manage_settings_template.render(data={"resourceTypes": resourceTypes})
 
     client.views_publish(user_id=userId, view=result)
-    ack(response_action="clear")
-
-@app.view("modify-resource-type")
-def handle_modify_resource_type(ack, body, client, view, logger):
-    userId = body["user"]["id"]
-
-    organisationId = body["team"]["id"]
-    stateData = body["view"]["state"]["values"]
-    # Extract the random block id
-    block_id = utilities.extractBlockIdString(stateData, "resourcetype_name_")
-    resourceTypeId = int(body["view"]["private_metadata"])
-    resourceTypeName = stateData[f"resourcetype_name_{block_id}"]["plain_text_input-action"]["value"]
-    resourceTypeDesc = stateData[f"resourcetype_desc_{block_id}"]["plain_text_input-action"]["value"]
-    resourceTypeAdministrators = stateData[f"resourcetype_admins_{block_id}"]["multi_users_select-action"]["selected_users"]
-    if len(resourceTypeAdministrators) == 0:
-        print("Adding current user as default administrator")
-        resourceTypeAdministrators.append(userId)
-    database.modifyResourceType(resourceTypeId, resourceTypeName, resourceTypeDesc, resourceTypeAdministrators)
-    print(f"Modified resourceType {resourceTypeId}")
-
-    resourceTypes = list(database.getResourceTypes(organisationId))
-    result = manage_settings_template.render(data={"resourceTypes": resourceTypes})
-    client.views_publish(user_id=userId, view=result)
-
     ack(response_action="clear")
 
 @app.view("delete-resource-type")

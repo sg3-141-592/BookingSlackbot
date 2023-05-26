@@ -181,9 +181,8 @@ def deleteEnvironment(environmentId: int):
     session.delete(deleteEnvironment)
     session.commit()
 
-
 def getEnvironments(organisationId: str, resourceTypeId: int) -> str:
-    return list(
+    result = list(
         session.query(
             Environment.id,
             Environment.name,
@@ -200,6 +199,11 @@ def getEnvironments(organisationId: str, resourceTypeId: int) -> str:
             )
         )
     )
+    # Filter out all environments that don't have valid dates
+    # i.e. one time bookings that are in the past
+    filtered_environments = filter(lambda x: utilities.getValidBookings(x[3], x[4]) != None, result)
+
+    return list(filtered_environments)
 
 
 # Bookings
