@@ -22,7 +22,6 @@ def getCurrentTime():
     return int(time.time())
 
 # Get list of the valid booking types for the current enviromment config
-@pysnooper.snoop()
 def getValidBookings(bookingType, bookingSettings, tzName):
     if bookingType == "DAILY":
         return list(map(lambda x: x.strftime('%Y-%m-%d'), getNextNDays(bookingSettings["numberDaysAdvance"], tzName)))
@@ -30,7 +29,7 @@ def getValidBookings(bookingType, bookingSettings, tzName):
         bookingDate = datetime.fromtimestamp(bookingSettings["date"], tz=ZoneInfo(tzName))
         currentDateTime = datetime.now(tz=ZoneInfo(tzName))
         if bookingDate >= currentDateTime:
-            return [bookingDate]
+            return [bookingDate.strftime('%Y-%m-%d %H:%M')]
         else:
             return None
     elif bookingType == "CUSTOM":
@@ -55,7 +54,7 @@ def databaseResultToDict(input_rows, id):
 def getNextNDays(num_days, tzName):
     # Get the set of dates that can be booked in app
     # Using users timezone
-    today = datetime.now(ZoneInfo(tzName))
+    today = datetime.now(ZoneInfo(tzName)).replace(hour=0, minute=0, second=0, microsecond=0)
     valid_days = [today]
     for i in range(1, num_days):
         result = today + timedelta(days=i)

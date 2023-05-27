@@ -85,7 +85,6 @@ def refresh_home_template(organisationId, userId, client, resourceTypeId: int = 
             ),
             None,
         )
-        print(f"TZ:{timeZoneName}")
         environments = list(database.getEnvironments(organisationId, resourceTypeId, timeZoneName))
 
         # If no environments have been defined yet
@@ -125,7 +124,6 @@ def refresh_home_template(organisationId, userId, client, resourceTypeId: int = 
             client.views_publish(user_id=userId, view=result)
 
 @app.event("app_home_opened")
-@pysnooper.snoop()
 def update_home_tab(client, event, logger):
     try:
         # Try and get userId first as it's needed to display error
@@ -231,8 +229,11 @@ def action_modify_environment(ack, body, client):
 @app.action("button-share-environment")
 def action_handle_share_environment(ack, body, client):
     organisationId = body["team"]["id"]
+    userId = body["user"]["id"]
+    timeZoneName = client.users_info(user = userId).data
+    timeZoneName = timeZoneName['user']['tz']
     resourceTypeId, resourceTypeName = body["actions"][0]["value"].split(",")
-    environments = database.getEnvironments(organisationId, resourceTypeId)
+    environments = database.getEnvironments(organisationId, resourceTypeId, timeZoneName)
 
     result = share_env_template.render(
         environments = environments,
@@ -563,10 +564,12 @@ def handle_delete_environment(ack, body, client, view, logger):
 def handle_add_booking(ack, body, client, view, logger):
     organisationId = body["team"]["id"]
     userId = body["user"]["id"]
+    timeZoneName = client.users_info(user = userId).data
+    timeZoneName = timeZoneName['user']['tz']
     resourceTypeId = int(body["view"]["private_metadata"])
 
     # Re-generate the home page
-    refresh_home_template(organisationId, userId, client, resourceTypeId)
+    refresh_home_template(organisationId, userId, client, resourceTypeId, timeZoneName)
 
     ack(response_action="clear")
 
@@ -670,9 +673,10 @@ def handle_share_environment(ack, body, client, view, logger):
     stateData = body["view"]["state"]["values"]
     selectedChannel = stateData["selected_channel"]["modify-channel-share"]["selected_channel"]
     selectedEnv = int(stateData["selected_env"]["modify-environment-share"]["selected_option"]["value"])
+    environmentData = database.getEnvironment(selectedEnv)
 
     result = booking_share_env_template.render(
-        environment = database.getEnvironment(selectedEnv)
+        environment = environmentData
     )
 
     print(f"Sharing {selectedEnv} to #{selectedChannel}")
