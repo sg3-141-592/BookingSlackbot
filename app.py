@@ -45,6 +45,9 @@ jinja_env = jinja2.Environment(
 )
 jinja_env.tests['userHasbooking'] = utilities.userHasBooking
 jinja_env.tests['numberBookingsRemaining'] = utilities.numberBookingsRemaining
+jinja_env.globals.update({
+    "getCurrentTime" : utilities.getCurrentTime()
+})
 
 home_template = jinja_env.get_template("home.json")
 add_env_template = jinja_env.get_template("addEnvironment.json")
@@ -140,6 +143,7 @@ def update_home_tab(client, event, logger):
 def handle_book_clicked(ack, body, client):
     organisationId = body["team"]["id"]
     userId = body["user"]["id"]
+    actionId = body['actions'][0]['action_id']
 
     environmentId = None
 
@@ -151,9 +155,6 @@ def handle_book_clicked(ack, body, client):
 
     environment = database.getEnvironment(environmentId)
     resourceTypeId = environment[3]
-    
-    pprint(environment)
-    pprint(environment[3])
 
     bookings = database.getBookings(organisationId, environmentId, resourceTypeId)
     bookings = utilities.databaseResultToDict(bookings, 1)
@@ -479,7 +480,7 @@ def handle_add_environment(ack, body, client, view, logger):
         }
     elif bookingType == "ONE-OFF":
         booking_settings = {
-            "date": stateData["env_oneoff_date"]["datepicker-action"]["selected_date"]
+            "date": stateData["env_oneoff_date"]["datepicker-action"]["selected_date_time"]
         }
     elif bookingType == "CUSTOM":
         booking_settings = {

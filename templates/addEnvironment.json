@@ -99,7 +99,9 @@
 			"element": {
 				"type": "number_input",
 				"is_decimal_allowed": false,
-				"action_id": "number_input-action"
+				"action_id": "number_input-action",
+				"min_value": "1",
+				"max_value": "21"
 			},
 			"label": {
 				"type": "plain_text",
@@ -111,13 +113,8 @@
 			"type": "input",
 			"block_id": "env_oneoff_date",
 			"element": {
-				"type": "datepicker",
-				"initial_date": "2023-05-12",
-				"placeholder": {
-					"type": "plain_text",
-					"text": "Select a date",
-					"emoji": true
-				},
+				"type": "datetimepicker",
+				"initial_date_time": {{ getCurrentTime }},
 				"action_id": "datepicker-action"
 			},
 			"label": {
@@ -204,7 +201,9 @@
 			"element": {
 				"type": "number_input",
 				"is_decimal_allowed": false,
-				"action_id": "number_input-action"
+				"action_id": "number_input-action",
+				"min_value": "1",
+				"max_value": "200"
 			},
 			"label": {
 				"type": "plain_text",

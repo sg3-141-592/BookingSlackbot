@@ -1,4 +1,7 @@
 from datetime import date, datetime, timedelta
+import time
+import pysnooper
+
 
 # Jinja2 methods
 def userHasBooking(bookings, userId):
@@ -15,15 +18,20 @@ def truncateString(inputStr: str) -> str:
         inputStr = f"{inputStr[:22]}.."
     return inputStr
 
+def getCurrentTime():
+    return int(time.time())
+
 # Get list of the valid booking types for the current enviromment config
+# @pysnooper.snoop()
 def getValidBookings(bookingType, bookingSettings):
     if bookingType == "DAILY":
         return list(map(lambda x: x.strftime('%Y-%m-%d'), getNextNDays(bookingSettings["numberDaysAdvance"])))
     elif bookingType == "ONE-OFF":
-        bookingDate = datetime.strptime(bookingSettings["date"], '%Y-%m-%d').date()
+        bookingDate = datetime.utcfromtimestamp(bookingSettings["date"])
+        print(bookingDate)
         # Get current date
-        if bookingDate >= date.today():
-            return [bookingSettings["date"]]
+        if bookingDate >= datetime.today():
+            return [bookingDate.strftime('%Y-%m-%d %H:%M')]
         else:
             return None
     elif bookingType == "CUSTOM":
