@@ -1,7 +1,7 @@
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 import time
 import pysnooper
-
 
 # Jinja2 methods
 def userHasBooking(bookings, userId):
@@ -22,23 +22,24 @@ def getCurrentTime():
     return int(time.time())
 
 # Get list of the valid booking types for the current enviromment config
-# @pysnooper.snoop()
-def getValidBookings(bookingType, bookingSettings):
+@pysnooper.snoop()
+def getValidBookings(bookingType, bookingSettings, tzName):
     if bookingType == "DAILY":
-        return list(map(lambda x: x.strftime('%Y-%m-%d'), getNextNDays(bookingSettings["numberDaysAdvance"])))
+        return list(map(lambda x: x.strftime('%Y-%m-%d'), getNextNDays(bookingSettings["numberDaysAdvance"], tzName)))
     elif bookingType == "ONE-OFF":
-        bookingDate = datetime.utcfromtimestamp(bookingSettings["date"])
-        print(bookingDate)
-        # Get current date
-        if bookingDate >= datetime.today():
-            return [bookingDate.strftime('%Y-%m-%d %H:%M')]
+        bookingDate = datetime.fromtimestamp(bookingSettings["date"], tz=ZoneInfo(tzName))
+        currentDateTime = datetime.now(tz=ZoneInfo(tzName))
+        if bookingDate >= currentDateTime:
+            return [bookingDate]
         else:
             return None
     elif bookingType == "CUSTOM":
         results = []
-        for day in getNextNDays(bookingSettings["numberDaysAdvance"]):
+        for day in getNextNDays(bookingSettings["numberDaysAdvance"], tzName):
             for bookingTime in bookingSettings['bookingTimes']:
-                results.append(f"{day} {bookingTime}")
+                hours, minutes = bookingTime.split(":")
+                result = day + timedelta(hours=int(hours), minutes=int(minutes))
+                results.append(result.strftime('%Y-%m-%d %H:%M'))
         return results
 
 def databaseResultToDict(input_rows, id):
@@ -51,12 +52,14 @@ def databaseResultToDict(input_rows, id):
             result[row[id]] = [row]
     return result
 
-def getNextNDays(num_days=2):
+def getNextNDays(num_days, tzName):
     # Get the set of dates that can be booked in app
-    today = date.today()
+    # Using users timezone
+    today = datetime.now(ZoneInfo(tzName))
     valid_days = [today]
     for i in range(1, num_days):
-        valid_days.append(today + timedelta(days=i))
+        result = today + timedelta(days=i)
+        valid_days.append(result.replace(hour=0, minute=0, second=0, microsecond=0))
     return valid_days
 
 def extractBlockIdString(blocks, targetString):

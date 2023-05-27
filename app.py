@@ -19,6 +19,7 @@ import views
 import utilities
 
 from pprint import pprint
+import pysnooper
 
 logging.basicConfig(level=logging.INFO)
 
@@ -59,7 +60,7 @@ add_resource_type_template = jinja_env.get_template("addResourceType.json")
 modify_resource_type_template = jinja_env.get_template("modifyResourceType.json")
 delete_resource_type_template = jinja_env.get_template("deleteResourceType.json")
 
-def refresh_home_template(organisationId, userId, client, resourceTypeId: int = None):
+def refresh_home_template(organisationId, userId, client, resourceTypeId: int = None, timeZoneName: str = None):
     resourceTypesData = list(database.getResourceTypes(organisationId))
 
     # If no resources have been defined yet
@@ -84,8 +85,8 @@ def refresh_home_template(organisationId, userId, client, resourceTypeId: int = 
             ),
             None,
         )
-
-        environments = list(database.getEnvironments(organisationId, resourceTypeId))
+        print(f"TZ:{timeZoneName}")
+        environments = list(database.getEnvironments(organisationId, resourceTypeId, timeZoneName))
 
         # If no environments have been defined yet
         if len(environments) == 0:
@@ -104,9 +105,9 @@ def refresh_home_template(organisationId, userId, client, resourceTypeId: int = 
         else:
             for index, environment in enumerate(environments):
                 # Get the bookings for each environment, and append them to the object
-                bookings = database.getBookings(organisationId, environment[0], resourceTypeId)
+                bookings = database.getBookings(organisationId, environment[0], resourceTypeId, timeZoneName=timeZoneName)
                 bookings = utilities.databaseResultToDict(bookings, 1)
-                validBookingKeys = utilities.getValidBookings(environment[3], environment[4])
+                validBookingKeys = utilities.getValidBookings(environment[3], environment[4], timeZoneName)
                 environments[index] = tuple(environment) + (bookings, validBookingKeys)
             
             result = home_template.render(
@@ -116,7 +117,6 @@ def refresh_home_template(organisationId, userId, client, resourceTypeId: int = 
                     "resourceTypeName": resourceTypeData[1],
                     "resourceTypeDescription": resourceTypeData[2],
                     "environments": environments,
-                    "bookings": utilities.getNextNDays(2),
                     "validDates": None,
                 },
                 isAdmin = userId in resourceTypeData[3]
@@ -125,13 +125,17 @@ def refresh_home_template(organisationId, userId, client, resourceTypeId: int = 
             client.views_publish(user_id=userId, view=result)
 
 @app.event("app_home_opened")
+@pysnooper.snoop()
 def update_home_tab(client, event, logger):
     try:
-        # Try and get userId first as it's needed to display errors
+        # Try and get userId first as it's needed to display error
         userId = event["user"]
+
+        timeZoneName = client.users_info(user = userId).data
+        timeZoneName = timeZoneName['user']['tz']
         teamData = client.team_info().data
         organisationId = teamData["team"]["id"]
-        refresh_home_template(organisationId, userId, client)
+        refresh_home_template(organisationId, userId, client, timeZoneName=timeZoneName)
     except Exception as e:
         logging.error(e)
         print(traceback.format_exc())
@@ -143,6 +147,8 @@ def update_home_tab(client, event, logger):
 def handle_book_clicked(ack, body, client):
     organisationId = body["team"]["id"]
     userId = body["user"]["id"]
+    timeZoneName = client.users_info(user = userId).data
+    timeZoneName = timeZoneName['user']['tz']
     actionId = body['actions'][0]['action_id']
 
     environmentId = None
@@ -156,9 +162,9 @@ def handle_book_clicked(ack, body, client):
     environment = database.getEnvironment(environmentId)
     resourceTypeId = environment[3]
 
-    bookings = database.getBookings(organisationId, environmentId, resourceTypeId)
+    bookings = database.getBookings(organisationId, environmentId, resourceTypeId, timeZoneName=timeZoneName)
     bookings = utilities.databaseResultToDict(bookings, 1)
-    validBookingKeys = utilities.getValidBookings(environment[4], environment[5])
+    validBookingKeys = utilities.getValidBookings(environment[4], environment[5], timeZoneName)
     environment = tuple(environment) + (bookings, validBookingKeys)
 
     result = book_env_template.render(
@@ -179,14 +185,16 @@ def handle_create_booking(ack, body, client):
     resourceTypeId = environment[3]
     bookingKey = body["actions"][0]["block_id"]
     userId = body["user"]["id"]
+    timeZoneName = client.users_info(user = userId).data
+    timeZoneName = timeZoneName['user']['tz']
     database.addBooking(
         environmentId, bookingKey, userId
     )
     print(f"Added booking - {environmentId}, {bookingKey}, {userId}")
 
-    bookings = database.getBookings(organisationId, environmentId, resourceTypeId)
+    bookings = database.getBookings(organisationId, environmentId, resourceTypeId, timeZoneName=timeZoneName)
     bookings = utilities.databaseResultToDict(bookings, 1)
-    validBookingKeys = utilities.getValidBookings(environment[4], environment[5])
+    validBookingKeys = utilities.getValidBookings(environment[4], environment[5], timeZoneName)
     environment = tuple(environment) + (bookings, validBookingKeys)
 
     result = book_env_template.render(
@@ -203,12 +211,15 @@ def handle_create_booking(ack, body, client):
 def action_modify_environment(ack, body, client):
     organisationId = body["team"]["id"]
     resourceTypeId, resourceTypeName = body["actions"][0]["value"].split(",")
+    userId = body["user"]["id"]
+    timeZoneName = client.users_info(user = userId).data
+    timeZoneName = timeZoneName['user']['tz']
 
     generated_template = copy.deepcopy(modify_enviroment_template)
     generated_template["blocks"][0]["elements"][0][
         "options"
     ] = views.generate_environment_options(
-        database.getEnvironments(organisationId, resourceTypeId)
+        database.getEnvironments(organisationId, resourceTypeId, timeZoneName)
     )
     titleStr = utilities.truncateString(f"Modify {resourceTypeName}")
     generated_template["title"]["text"] = titleStr
@@ -240,10 +251,13 @@ def handle_resourcetype_select(ack, body, client):
     userId = body["user"]["id"]
     resourceTypeId = body["actions"][0]["selected_option"]["value"]
 
+    timeZoneName = client.users_info(user = userId).data
+    timeZoneName = timeZoneName['user']['tz']
+
     print(f"Switching to resourceTypeId: {resourceTypeId}")
 
     # Re-generate the home page
-    refresh_home_template(organisationId, userId, client, resourceTypeId)
+    refresh_home_template(organisationId, userId, client, resourceTypeId, timeZoneName=timeZoneName)
 
     ack()
 
@@ -288,6 +302,11 @@ def getEnvironmentTimes(bodyState):
 def handle_modify_environment_select(ack, body, client):
     resourceTypeId = int(body["view"]["private_metadata"])
     organisationId = body["team"]["id"]
+
+    userId = body["user"]["id"]
+    timeZoneName = client.users_info(user = userId).data
+    timeZoneName = timeZoneName['user']['tz']
+
     environmentId = body["actions"][0]["selected_option"]["value"]
     environmentName = body["actions"][0]["selected_option"]["text"]["text"]
 
@@ -302,7 +321,7 @@ def handle_modify_environment_select(ack, body, client):
     generated_template["blocks"][0]["elements"][0][
         "options"
     ] = views.generate_environment_options(
-        database.getEnvironments(organisationId, resourceTypeId)
+        database.getEnvironments(organisationId, resourceTypeId, timeZoneName)
     )
     generated_template["blocks"] += views.generateModifyEnvironment(
         database.getEnvironment(environmentId)
@@ -320,14 +339,16 @@ def handle_remove_booking(ack, body, client):
     resourceTypeId = environment[3]
     bookingKey = body["actions"][0]["block_id"]
     userId = body["user"]["id"]
+    timeZoneName = client.users_info(user = userId).data
+    timeZoneName = timeZoneName['user']['tz']
     database.removeBooking(
         environmentId, bookingKey, userId
     )
     print(f"Removed booking - {environmentId}, {bookingKey}, {userId}")
 
-    bookings = database.getBookings(organisationId, environmentId, resourceTypeId)
+    bookings = database.getBookings(organisationId, environmentId, resourceTypeId, timeZoneName=timeZoneName)
     bookings = utilities.databaseResultToDict(bookings, 1)
-    validBookingKeys = utilities.getValidBookings(environment[4], environment[5])
+    validBookingKeys = utilities.getValidBookings(environment[4], environment[5], timeZoneName)
     environment = tuple(environment) + (bookings, validBookingKeys)
 
     result = book_env_template.render(
@@ -358,6 +379,10 @@ def handle_add_env_clicked(ack, body, client):
 def handle_delete_env_clicked(ack, body, client):
     organisationId = body["team"]["id"]
     resourceTypeId, resourceTypeName = body["actions"][0]["value"].split(",")
+    
+    userId = body["user"]["id"]
+    timeZoneName = client.users_info(user = userId).data
+    timeZoneName = timeZoneName['user']['tz']
 
     generated_template = copy.deepcopy(delete_enviroment_template)
     generated_template["private_metadata"] = str(resourceTypeId)
@@ -366,7 +391,7 @@ def handle_delete_env_clicked(ack, body, client):
     generated_template["blocks"][0]["element"][
         "options"
     ] = views.generate_environment_options(
-        database.getEnvironments(organisationId, resourceTypeId)
+        database.getEnvironments(organisationId, resourceTypeId, timeZoneName)
     )
     client.views_open(trigger_id=body["trigger_id"], view=generated_template)
     ack()
@@ -450,6 +475,8 @@ def handle_add_environment(ack, body, client, view, logger):
     resourceTypeId = int(body["view"]["private_metadata"])
     organisationId = body["team"]["id"]
     userId = body["user"]["id"]
+    timeZoneName = client.users_info(user = userId).data
+    timeZoneName = timeZoneName['user']['tz']
     stateData = body["view"]["state"]["values"]
     newEnvironment = stateData["env_name"]["plain_text_input-action"]["value"]
     description = stateData["env_desc"]["plain_text_input-action"]["value"]
@@ -507,7 +534,7 @@ def handle_add_environment(ack, body, client, view, logger):
         ack(response_action="errors", errors=errors)
 
     # Re-generate the home page
-    refresh_home_template(organisationId, userId, client, resourceTypeId)
+    refresh_home_template(organisationId, userId, client, resourceTypeId, timeZoneName=timeZoneName)
 
     ack(response_action="clear")
 
@@ -516,6 +543,8 @@ def handle_add_environment(ack, body, client, view, logger):
 def handle_delete_environment(ack, body, client, view, logger):
     organisationId = body["team"]["id"]
     userId = body["user"]["id"]
+    timeZoneName = client.users_info(user = userId).data
+    timeZoneName = timeZoneName['user']['tz']
     resourceTypeId = int(body["view"]["private_metadata"])
 
     delEnvironment = body["view"]["state"]["values"]["env_name"][
@@ -525,7 +554,7 @@ def handle_delete_environment(ack, body, client, view, logger):
     database.deleteEnvironment(delEnvironment)
 
     # Re-generate the home page
-    refresh_home_template(organisationId, userId, client, resourceTypeId)
+    refresh_home_template(organisationId, userId, client, resourceTypeId, timeZoneName)
 
     ack(response_action="clear")
 
@@ -546,6 +575,9 @@ def handle_add_booking(ack, body, client, view, logger):
 def handle_modify_environment(ack, body, client, view, logger):
     organisationId = body["team"]["id"]
     userId = body["user"]["id"]
+    timeZoneName = client.users_info(user = userId).data
+    timeZoneName = timeZoneName['user']['tz']
+
     resourceTypeId = int(body["view"]["private_metadata"])
 
     # Extract name and description keys
@@ -571,7 +603,7 @@ def handle_modify_environment(ack, body, client, view, logger):
     database.modifyEnvironment(environmentId, environmentName, environmentDescription)
 
     # Re-generate the home page
-    refresh_home_template(organisationId, userId, client, resourceTypeId)
+    refresh_home_template(organisationId, userId, client, resourceTypeId, timeZoneName)
 
     ack(response_action="clear")
 

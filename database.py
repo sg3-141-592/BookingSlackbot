@@ -19,6 +19,7 @@ from sqlalchemy.pool import SingletonThreadPool
 
 import datetime
 import os
+import pysnooper
 
 import utilities
 
@@ -181,7 +182,7 @@ def deleteEnvironment(environmentId: int):
     session.delete(deleteEnvironment)
     session.commit()
 
-def getEnvironments(organisationId: str, resourceTypeId: int) -> str:
+def getEnvironments(organisationId: str, resourceTypeId: int, timeZoneName: str) -> str:
     result = list(
         session.query(
             Environment.id,
@@ -201,7 +202,7 @@ def getEnvironments(organisationId: str, resourceTypeId: int) -> str:
     )
     # Filter out all environments that don't have valid dates
     # i.e. one time bookings that are in the past
-    filtered_environments = filter(lambda x: utilities.getValidBookings(x[3], x[4]) != None, result)
+    filtered_environments = filter(lambda x: utilities.getValidBookings(x[3], x[4], timeZoneName) != None, result)
 
     return list(filtered_environments)
 
@@ -231,11 +232,11 @@ def removeBooking(environmentId: int, bookingKey: str, userId: str):
     session.commit()
 
 def getBookings(
-    organisationId: str = None, environmentId=None, resourceTypeId: int = None, bookingKey: str = None
+    organisationId: str = None, environmentId=None, resourceTypeId: int = None, bookingKey: str = None, timeZoneName: str = None
 ) -> list:
     # Get information about the current environment
     environmentData = getEnvironment(environmentId)
-    validBookingKeys = utilities.getValidBookings(environmentData[4], environmentData[5])
+    validBookingKeys = utilities.getValidBookings(environmentData[4], environmentData[5], timeZoneName)
     if bookingKey and environmentId:
         return list(
             session.query(Booking.environment, Booking.booking_key, Booking.user_id)
