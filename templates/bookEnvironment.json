@@ -22,7 +22,7 @@
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
-				"text": "{{ bookingKey }}\n- {% for booking in environment[7][bookingKey] %} <@{{ booking[2] }}> {% endfor %}\n{{ environment[7][bookingKey] is numberBookingsRemaining(environment[6]) }} remaining"
+				"text": "{{ environment[8][bookingKey] }}\n- {% for booking in environment[7][bookingKey] %} <@{{ booking[2] }}> {% endfor %}\n{{ environment[7][bookingKey] is numberBookingsRemaining(environment[6]) }} remaining"
 			},
 			"block_id": "{{ bookingKey }}",
 			{% if environment[7][bookingKey] is numberBookingsRemaining(environment[6]) > 0 or environment[7][bookingKey] is userHasbooking(userId) %}

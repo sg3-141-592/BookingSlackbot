@@ -108,7 +108,7 @@ def refresh_home_template(organisationId, userId, client, resourceTypeId: int = 
                 bookings = utilities.databaseResultToDict(bookings, 1)
                 validBookingKeys = utilities.getValidBookings(environment[3], environment[4], timeZoneName)
                 environments[index] = tuple(environment) + (bookings, validBookingKeys)
-            
+
             result = home_template.render(
                 data={
                     "resourceTypesData": resourceTypesData,
@@ -401,9 +401,11 @@ def handle_delete_env_clicked(ack, body, client):
 @app.action("button-back")
 def handle_back_clicked(ack, body, client):
     userId = body["user"]["id"]
+    timeZoneName = client.users_info(user = userId).data
+    timeZoneName = timeZoneName['user']['tz']
     teamData = client.team_info().data
     organisationId = teamData["team"]["id"]
-    refresh_home_template(organisationId, userId, client)
+    refresh_home_template(organisationId, userId, client, timeZoneName=timeZoneName)
     ack()
 
 
