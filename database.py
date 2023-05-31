@@ -19,7 +19,6 @@ from sqlalchemy.pool import SingletonThreadPool
 
 import datetime
 import os
-import pysnooper
 
 import utilities
 

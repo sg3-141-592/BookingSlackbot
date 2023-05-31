@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 import time
-import pysnooper
 
 # Jinja2 methods
 def userHasBooking(bookings, userId):

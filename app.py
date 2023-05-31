@@ -21,7 +21,6 @@ import views
 import utilities
 
 from pprint import pprint
-import pysnooper
 
 logging.basicConfig(level=logging.INFO)
 
