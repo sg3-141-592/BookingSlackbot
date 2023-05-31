@@ -667,17 +667,26 @@ def handle_add_resource_type(ack, body, client, view, logger):
 
 @app.view("delete-resource-type")
 def handle_delete_resource_type(ack, body, client, view, logger):
+    userId = body["user"]["id"]
     organisationId = body["team"]["id"]
     stateData = body["view"]["state"]["values"]
     resourceTypeId = int(stateData["resourcetype_name"]["static_select-action"]["selected_option"]["value"])
-    database.deleteResourceType(resourceTypeId)
-    print(f"Deleted resourceType {resourceTypeId}")
-    resourceTypes = list(database.getResourceTypes(organisationId))
-
-    result = manage_settings_template.render(data={"resourceTypes": resourceTypes})
-    userId = body["user"]["id"]
-    client.views_publish(user_id=userId, view=result)
-    ack(response_action="clear")
+    # Check if the user has access to delete this resource
+    currentResourceType = database.getResourceType(resourceTypeId)
+    print(f"resourceTypeId:{resourceTypeId}, {currentResourceType}")
+    if userId in currentResourceType[3]:
+        print(f"Deleted resourceType {resourceTypeId}")
+        resourceTypes = list(database.getResourceTypes(organisationId))
+        result = manage_settings_template.render(data={"resourceTypes": resourceTypes})
+        userId = body["user"]["id"]
+        client.views_publish(user_id=userId, view=result)
+        ack(response_action="clear")
+    else:
+        errors = {
+            "resourcetype_name": "You don't have access to delete this"
+        }
+        ack(response_action="errors", errors=errors)
+        return
 
 @app.view("share-environment")
 def handle_share_environment(ack, body, client, view, logger):
