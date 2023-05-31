@@ -413,7 +413,10 @@ def handle_back_clicked(ack, body, client):
 def handle_settings_clicked(ack, body, client):
     organisationId = body["team"]["id"]
     resourceTypes = list(database.getResourceTypes(organisationId))
-    result = manage_settings_template.render(data={"resourceTypes": resourceTypes})
+    result = manage_settings_template.render(
+        data={"resourceTypes": resourceTypes},
+        modifyDeleteEnabled = False
+    )
     client.views_update(view_id=body["view"]["id"], view=result)
     ack()
 
@@ -427,15 +430,45 @@ def handle_add_resourcetype_clicked(ack, body, client):
     client.views_open(trigger_id=body["trigger_id"], view=result)
     ack()
 
-@app.action("button-modify-resourcetype")
+@app.action(re.compile("button-modify-resourcetype|modify-modal-resourcetype-select"))
 def handle_modify_resourcetype_clicked(ack, body, client):
+    actionId = body['actions'][0]['action_id']
+    pprint(f"Processing {actionId}")
+    userId = body["user"]["id"]
     organisationId = body["team"]["id"]
     resourceTypes = list(database.getResourceTypes(organisationId))
+
+    currentResourceType = None
+    blockIdSuffix = None
+    if actionId == "modify-modal-resourcetype-select":
+        resourceTypeId = int(body["view"]["state"]["values"]["resourcetype_id"]["modify-modal-resourcetype-select"]["selected_option"]["value"])
+        currentResourceType = next(
+            (
+                resourceType
+                for resourceType in resourceTypes
+                if resourceType[0] == resourceTypeId
+            ),
+            None,
+        )
+        blockIdSuffix = str(uuid.uuid4()) # Randomise block_ids to get around slack re-rendering bug
+        print(f"Switching to {currentResourceType[1]}")
+    elif actionId == "button-modify-resourcetype":
+        currentResourceType = resourceTypes[0] # Default to first element
+
+    # Check if user can modify the resource
+    canModifyResource = userId in currentResourceType[3]
+
     result = modify_resource_type_template.render(
         resourceTypes=resourceTypes,
-        currentResourceType=resourceTypes[0] # Default to first element
+        currentResourceType=currentResourceType,
+        canModifyResource=canModifyResource,
+        blockIdSuffix = blockIdSuffix
     )
-    client.views_open(trigger_id=body["trigger_id"], view=result)
+
+    if actionId == "button-modify-resourcetype":
+        client.views_open(trigger_id=body["trigger_id"], view=result)
+    elif actionId == "modify-modal-resourcetype-select":
+        client.views_update(view_id=body["view"]["id"], view=result)
     ack()
 
 @app.action("button-delete-resourcetype")
@@ -447,30 +480,6 @@ def handle_delete_resourcetype_clicked(ack, body, client):
         currentResourceType=resourceTypes[0] # Default to first element
     )
     client.views_open(trigger_id=body["trigger_id"], view=result)
-    ack()
-
-@app.action("modify-modal-resourcetype-select")
-def handle_modify_resourcetype_select(ack, body, client):
-    organisationId = body["team"]["id"]
-    resourceTypeId = int(body["view"]["state"]["values"]["resourcetype_id"]["modify-modal-resourcetype-select"]["selected_option"]["value"])
-    resourceTypes = list(database.getResourceTypes(organisationId))
-    currentResourceType = next(
-        (
-            resourceType
-            for resourceType in resourceTypes
-            if resourceType[0] == resourceTypeId
-        ),
-        None,
-    )
-    print(f"Switching to {currentResourceType[1]}")
-
-    result = modify_resource_type_template.render(
-        resourceTypes=resourceTypes,
-        currentResourceType=currentResourceType,
-        blockIdSuffix = str(uuid.uuid4()) # Randomise block_ids to get around slack re-rendering bug
-    )
-
-    client.views_update(view_id=body["view"]["id"], view=result)
     ack()
 
 @app.view("add-environment")

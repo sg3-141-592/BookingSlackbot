@@ -84,12 +84,12 @@ def addResourceType(name: str, organisationId: str, description: str = None, adm
         session.rollback()
         raise
 
-
 def getResourceTypes(organisationId: str):
     try:
-        return session.query(
+        resourceTypes = session.query(
             ResourceType.id, ResourceType.name, ResourceType.description, ResourceType.administrators
-        ).filter(ResourceType.organisation_id == organisationId)
+        ).filter(ResourceType.organisation_id == organisationId).all()
+        return resourceTypes
     except NoResultFound:
         return None
 

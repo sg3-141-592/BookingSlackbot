@@ -53,6 +53,7 @@
 				}
 			]
 		},
+		{% if canModifyResource %}
 		{
 			"type": "input",
 			"block_id": "resourcetype_name_{{ blockIdSuffix }}",
@@ -102,6 +103,15 @@
 				"text": "Set Administrators",
 				"emoji": true
 			}
-		}
+		},
+		{% else %}
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "You don't have access to modify {{ currentResourceType[1] }}\nRequest access from {% for admin in currentResourceType[3] %}<@{{ admin }}> {% endfor %}"
+			}
+		},
+		{% endif %}
 	]
 }
