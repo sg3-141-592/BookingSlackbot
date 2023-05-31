@@ -1,6 +1,8 @@
 import contextlib
 import copy
+from datetime import datetime, timezone
 import logging
+from zoneinfo import ZoneInfo
 import jinja2
 import json
 import os
@@ -496,19 +498,6 @@ def handle_add_environment(ack, body, client, view, logger):
         "selected_option"
     ]["value"]
     numberUsers = int(stateData["env_num_users"]["number_input-action"]["value"])
-    
-    # Timepicker handling
-    bookingTimes = getEnvironmentTimes(stateData)
-    # Raise an error if any bookingTimes have duplicates
-    if len(bookingTimes) != len(set(bookingTimes)):
-        # TODO: Work out a way to display these errors on the home screen
-        # Got a problem with inputs currently
-        print("Duplicates found")
-        errors = {
-            "env_custom_time_1":  "Duplciate times are not allowed"
-        }
-        ack(response_action="errors", errors=errors)
-        return
 
     booking_settings = {}
     if bookingType == "DAILY":
@@ -518,10 +507,35 @@ def handle_add_environment(ack, body, client, view, logger):
             )
         }
     elif bookingType == "ONE-OFF":
+        # Check booking date isn't in the past
+        oneOffDate = stateData["env_oneoff_date"]["datepicker-action"]["selected_date_time"]
+        oneOffDateTime = datetime.fromtimestamp(oneOffDate)
+        currentDateTime = datetime.now()
+        if oneOffDateTime <= currentDateTime:
+            print(f"ONE-OFF booking is in the past {oneOffDateTime}")
+            errors = {
+                "env_oneoff_date":  "Cannot create bookings in the past"
+            }
+            ack(response_action="errors", errors=errors)
+            return
+        
         booking_settings = {
             "date": stateData["env_oneoff_date"]["datepicker-action"]["selected_date_time"]
         }
     elif bookingType == "CUSTOM":
+        # Timepicker handling
+        bookingTimes = getEnvironmentTimes(stateData)
+        # Raise an error if any bookingTimes have duplicates
+        if len(bookingTimes) != len(set(bookingTimes)):
+            # TODO: Work out a way to display these errors on the home screen
+            # Got a problem with inputs currently
+            print("Duplicates found")
+            errors = {
+                "env_custom_time_1":  "Duplciate times are not allowed"
+            }
+            ack(response_action="errors", errors=errors)
+            return
+        # 
         booking_settings = {
             "bookingTimes": bookingTimes,
             "numberDaysAdvance": int(
