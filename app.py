@@ -530,7 +530,7 @@ def handle_add_environment(ack, body, client, view, logger):
             # Got a problem with inputs currently
             print("Duplicates found")
             errors = {
-                "env_custom_time_1":  "Duplciate times are not allowed"
+                "env_custom_time_1":  "Duplicate times are not allowed"
             }
             ack(response_action="errors", errors=errors)
             return
@@ -688,6 +688,7 @@ def handle_delete_resource_type(ack, body, client, view, logger):
     currentResourceType = database.getResourceType(resourceTypeId)
     print(f"resourceTypeId:{resourceTypeId}, {currentResourceType}")
     if userId in currentResourceType[3]:
+        database.deleteResourceType(resourceTypeId)
         print(f"Deleted resourceType {resourceTypeId}")
         resourceTypes = list(database.getResourceTypes(organisationId))
         result = manage_settings_template.render(data={"resourceTypes": resourceTypes})
