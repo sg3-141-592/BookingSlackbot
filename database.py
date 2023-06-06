@@ -1,6 +1,7 @@
 from sqlalchemy import (
     Column,
     Date,
+    DateTime,
     Enum,
     ForeignKey,
     JSON,
@@ -63,6 +64,17 @@ class Booking(Base):
     booking_key = Column(String, index=True)
     __table_args__ = (UniqueConstraint("environment", "booking_key", "user_id", name="uix_env_date"),)
 
+# Used to record references to shares to update them later
+class Share(Base):
+    __tablename__ = "shares"
+    id = Column(Integer, primary_key=True)
+    environment = Column(Integer, ForeignKey("environments.id"), index=True)
+    channel_id = Column(String)
+    timestamp = Column(String)
+    created = Column(
+		DateTime(timezone=True),
+		default=datetime.datetime.utcnow
+	)
 
 Base.metadata.create_all(engine)
 
@@ -279,3 +291,20 @@ def getBookings(
                 )
             )
         )
+
+
+# Shares
+# -----------------------------------
+
+def addShare(environmentId: int, channelId: str, timestamp: str):
+    try:
+        newShare = Share(
+            environment=environmentId,
+            channel_id=channelId,
+            timestamp=timestamp
+        )
+        session.add(newShare)
+        session.commit()
+    except (PendingRollbackError, IntegrityError):
+        session.rollback()
+        raise

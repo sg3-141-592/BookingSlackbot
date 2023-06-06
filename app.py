@@ -716,7 +716,12 @@ def handle_share_environment(ack, body, client, view, logger):
     print(f"Sharing {selectedEnv} to #{selectedChannel}")
     
     try:
-        client.chat_postMessage(channel=selectedChannel, blocks=json.loads(result))
+        result = client.chat_postMessage(channel=selectedChannel, blocks=json.loads(result))
+        database.addShare(
+            environmentId=environmentData[0],
+            channelId=result["channel"],
+            timestamp=result["ts"]
+        )
     except Exception as e:
         logger.exception(f"Failed to post a message {e}")
     
