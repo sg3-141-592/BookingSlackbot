@@ -1,7 +1,7 @@
 {
 	"type": "modal",
 	"callback_id": "add-booking",
-	"private_metadata": "{{ resourceTypeId }}",
+	"private_metadata": "{{ resourceTypeId }},{{ environment[0] }}",
 	"title": {
 		"type": "plain_text",
 		"text": "Book {{ environment[1]|truncate(19, True, '..') }}",

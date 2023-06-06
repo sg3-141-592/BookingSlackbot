@@ -590,12 +590,35 @@ def handle_add_booking(ack, body, client, view, logger):
     userId = body["user"]["id"]
     timeZoneName = client.users_info(user = userId).data
     timeZoneName = timeZoneName['user']['tz']
-    resourceTypeId = int(body["view"]["private_metadata"])
+    resourceTypeId, environmentId = body["view"]["private_metadata"].split(",")
+    resourceTypeId = int(resourceTypeId)
+    environmentId = int(environmentId)
 
     # Re-generate the home page
     refresh_home_template(organisationId, userId, client, resourceTypeId, timeZoneName)
 
     ack(response_action="clear")
+
+    # Get environment data and join bookings data onto it
+    environment = database.getEnvironment(environmentId)
+    bookings = database.getBookings(organisationId, environmentId, resourceTypeId, timeZoneName=timeZoneName)
+    bookings = utilities.databaseResultToDict(bookings, 1)
+    validBookingKeys = utilities.getValidBookings(environment[4], environment[5], timeZoneName)
+    environment = tuple(environment) + (bookings, validBookingKeys)
+
+    result = booking_share_env_template.render(
+        environment = environment
+    )
+
+    # Find all references to shares to update them
+    for share in database.getShares(environmentId=environmentId):
+        print(f"Updating channel {share[0]} {share[1]}")
+        try:
+            requestResult = client.chat_update(channel=share[0], ts=share[1], blocks=json.loads(result))
+        except Exception as e:
+            pprint(e)
+            print(f"Error updating channel {share[0]} {share[1]}")
+            
 
 
 @app.view("modify-environment")
@@ -705,12 +728,27 @@ def handle_delete_resource_type(ack, body, client, view, logger):
 @app.view("share-environment")
 def handle_share_environment(ack, body, client, view, logger):
     stateData = body["view"]["state"]["values"]
+
     selectedChannel = stateData["selected_channel"]["modify-channel-share"]["selected_channel"]
     selectedEnv = int(stateData["selected_env"]["modify-environment-share"]["selected_option"]["value"])
-    environmentData = database.getEnvironment(selectedEnv)
+    
+    organisationId = body["team"]["id"]
+    userId = body["user"]["id"]
+    timeZoneName = client.users_info(user = userId).data
+    timeZoneName = timeZoneName['user']['tz']
+    environmentId = stateData["selected_env"]["modify-environment-share"]["selected_option"]["value"]
+
+    # Get environment data and join bookings data onto it
+    environment = database.getEnvironment(environmentId)
+    bookings = database.getBookings(organisationId, environmentId, None, timeZoneName=timeZoneName)
+    bookings = utilities.databaseResultToDict(bookings, 1)
+    validBookingKeys = utilities.getValidBookings(environment[4], environment[5], timeZoneName)
+    environment = tuple(environment) + (bookings, validBookingKeys)
+
+    pprint(environment)
 
     result = booking_share_env_template.render(
-        environment = environmentData
+        environment = environment
     )
 
     print(f"Sharing {selectedEnv} to #{selectedChannel}")
@@ -718,7 +756,7 @@ def handle_share_environment(ack, body, client, view, logger):
     try:
         result = client.chat_postMessage(channel=selectedChannel, blocks=json.loads(result))
         database.addShare(
-            environmentId=environmentData[0],
+            environmentId=environment[0],
             channelId=result["channel"],
             timestamp=result["ts"]
         )

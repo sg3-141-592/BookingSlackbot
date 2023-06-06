@@ -308,3 +308,9 @@ def addShare(environmentId: int, channelId: str, timestamp: str):
     except (PendingRollbackError, IntegrityError):
         session.rollback()
         raise
+
+def getShares(environmentId: int):
+    return list(
+        session.query(Share.channel_id, Share.timestamp)
+        .where(Share.environment == environmentId)
+    )

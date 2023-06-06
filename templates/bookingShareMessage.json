@@ -12,13 +12,13 @@
 		"block_id": "env_id",
 		"text": {
 			"type": "mrkdwn",
-			"text": "{% if environment[2] %}{{ environment[2] | replace('\n','\\n') }}{% else %}#{% endif %}"
+			"text": "{% if environment[2] %}{{ environment[2] }}{% endif %}\n{% for bookingKey in environment[8] %}- {{ environment[8][bookingKey] }} {% if bookingKey in environment[7].keys() %}{% for booking in environment[7][bookingKey] %}<@{{ booking[2] }}> {% endfor %}{% else %}:free:{% endif %}\n{% endfor %}"
 		},
 		"accessory": {
 			"type": "button",
 			"text": {
 				"type": "plain_text",
-				"text": "Book",
+				"text": "Book--",
 				"emoji": true
 			},
 			"value": "{{ environment[0] }}",
