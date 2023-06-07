@@ -3,7 +3,7 @@
 	"callback_id": "add-environment",
 	"title": {
 		"type": "plain_text",
-		"text": "{{ data['resourceTypeName']|truncate(20, True, '..') }}",
+		"text": "{{ data['resourceTypeName']|truncate(19, killwords=True) }}",
 		"emoji": true
 	},
 	"submit": {
