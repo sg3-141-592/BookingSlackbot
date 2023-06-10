@@ -4,7 +4,7 @@
 	"private_metadata": "{{ resourceTypeId }},{{ environment[0] }}",
 	"title": {
 		"type": "plain_text",
-		"text": "Book {{ environment[1] | truncate(16, killwords=True) }}",
+		"text": "Book {{ environment[1] | truncate(16, True, '..', 0) }}",
 		"emoji": true
 	},
 	"submit": {
