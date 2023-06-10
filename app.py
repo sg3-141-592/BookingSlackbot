@@ -1,8 +1,7 @@
 import contextlib
 import copy
-from datetime import datetime, timezone
+from datetime import datetime
 import logging
-from zoneinfo import ZoneInfo
 import jinja2
 import json
 import os
@@ -14,15 +13,13 @@ import uuid
 from slack_bolt import App
 from slack_bolt.oauth import OAuthFlow
 from slack_bolt.oauth.oauth_settings import OAuthSettings
-from slack_bolt.adapter.socket_mode import SocketModeHandler
+from slack_bolt.adapter.flask import SlackRequestHandler
 
 import database
 import views
 import utilities
 
 from pprint import pprint
-
-logging.basicConfig(level=logging.INFO)
 
 app = App(
     signing_secret=os.environ.get("SLACK_SIGNING_SECRET"),
@@ -36,6 +33,34 @@ app = App(
         token_rotation_expiration_minutes=60 * 24,  # for testing
     ),
 )
+
+# Logging setup
+logging.basicConfig(level=logging.INFO)
+
+@app.middleware  # or app.use(log_request)
+def log_request(logger, body, next):
+    logger.debug(body)
+    return next()
+
+# Flask setup
+from flask import Flask, request
+
+flask_app = Flask(__name__)
+handler = SlackRequestHandler(app)
+
+@flask_app.route("/slack/events", methods=["POST"])
+def slack_events():
+    return handler.handle(request)
+
+
+@flask_app.route("/slack/install", methods=["GET"])
+def install():
+    return handler.handle(request)
+
+
+@flask_app.route("/slack/oauth_redirect", methods=["GET"])
+def oauth_redirect():
+    return handler.handle(request)
 
 # Preload templates
 delete_enviroment_template = json.load(open("templates/deleteEnvironment.json", "r"))
@@ -767,5 +792,4 @@ def handle_share_environment(ack, body, client, view, logger):
 
 # Start your app
 if __name__ == "__main__":
-    SocketModeHandler(app, os.environ["SLACK_SOCKET_TOKEN"]).connect()
     app.start(3000)

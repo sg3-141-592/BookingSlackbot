@@ -1,4 +1,6 @@
+Flask==2.2.3
 greenlet==2.0.2
+gunicorn==20.1.0
 Jinja2==3.0.3
 slack-bolt==1.18.0
 slack-sdk==3.21.3
