@@ -3,7 +3,7 @@
 	"callback_id": "share-environment",
 	"title": {
 		"type": "plain_text",
-		"text": "Share {{ resourceTypeName | truncate(17, True, '..') }}",
+		"text": "Share {{ resourceTypeName|truncate(14, killwords=True) }}",
 		"emoji": true
 	},
 	"submit": {
