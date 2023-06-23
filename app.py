@@ -26,13 +26,15 @@ app = App(
     oauth_settings=OAuthSettings(
         client_id=os.environ["SLACK_CLIENT_ID"],
         client_secret=os.environ["SLACK_CLIENT_SECRET"],
-        scopes=os.environ["SLACK_SCOPES"].split(","),
+        scopes=os.environ["SLACK_SCOPES"].split(",")
     ),
     oauth_flow=OAuthFlow.sqlite3(
         database=os.environ["OAUTH_DATABASE_STR"],
-        token_rotation_expiration_minutes=60 * 24,  # for testing
+        token_rotation_expiration_minutes=60 * 24
     ),
 )
+# Have to do this manually because it's not supported by the interfaces
+app.oauth_flow.settings.install_page_rendering_enabled = False
 
 # Logging setup
 logging.basicConfig(level=logging.INFO)
@@ -793,3 +795,5 @@ def handle_share_environment(ack, body, client, view, logger):
 # Start your app
 if __name__ == "__main__":
     app.start(3000)
+    # from slack_bolt.adapter.socket_mode import SocketModeHandler
+    # SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"]).start()
